@@ -43,15 +43,17 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 					artist = track['release']['artistsTitle'],
 					release = track['release']['title']
 				).replace('|', '-').replace('/', '-').replace('\\', '-').replace(':', '')
+				subdir = re.sub(r'[*?:"<>|]' ,'', subdir)
 
 			if not os.path.exists("{parent}/{sub}".format(parent=output_dir, sub=subdir)):
 				os.mkdir("{parent}/{sub}".format(parent=output_dir, sub=subdir))
 
+			title_esc = re.sub(r'[*?:"<>|]' ,'', track['title'])
 			full_path = "{parent}/{sub}/{artist} - {title}.mp3".format(
 				parent = output_dir,
 				sub = subdir,
 				artist = track['artistsTitle'],
-				title = track['title'].replace('/', '-').replace('<', '').replace('>', '').replace('\\', '-').replace(':', '')
+				title = title_esc.replace('/', '-').replace('\\', '-')
 			).replace('//', '/')
 
 			percent = '%0.2f' % ((float(count)/float(resp['total'])) * 100)
