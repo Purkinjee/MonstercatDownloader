@@ -2,7 +2,7 @@
 
 Script to easily download all creator friendly tracks using your Monstercat gold account. You must have Monstercat gold for this to work.
 
-You can download a compiled .exe file by clicking [here](https://github.com/Purkinjee/MonstercatDownloader/releases/tag/0.1). The .exe should be run from a commmand prompt.
+You can download a compiled .exe file by clicking [here](https://github.com/Purkinjee/MonstercatDownloader/releases/tag/0.1). The .exe should be run from a commmand prompt. If you run it on a directory with previously downloaded music it will only download new songs rather than redownloading the entire library.
 
 You will need your Monstercat SID to use this script. You can get it in chrome by visiting the following URL. Copy the sid which should start with "s%3A".
 ```
