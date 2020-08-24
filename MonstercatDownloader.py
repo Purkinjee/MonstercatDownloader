@@ -42,7 +42,7 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 				subdir = "{artist} - {release}".format(
 					artist = track['release']['artistsTitle'],
 					release = track['release']['title']
-				).replace('|', '-').replace('/', '-')
+				).replace('|', '-').replace('/', '-').replace('\\', '-').replace(':', '')
 
 			if not os.path.exists("{parent}/{sub}".format(parent=output_dir, sub=subdir)):
 				os.mkdir("{parent}/{sub}".format(parent=output_dir, sub=subdir))
@@ -51,7 +51,7 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 				parent = output_dir,
 				sub = subdir,
 				artist = track['artistsTitle'],
-				title = track['title']
+				title = track['title'].replace('/', '-').replace('<', '').replace('>', '').replace('\\', '-').replace(':', '')
 			).replace('//', '/')
 
 			percent = '%0.2f' % ((float(count)/float(resp['total'])) * 100)
@@ -83,6 +83,7 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 
 		skip += resp['limit']
 
+	print('')
 	print('Downloaded: {}'.format(downloaded_count))
 	print('Existed: {}'.format(exists_count))
 	print('Undownloadable: {}'.format(not_downloadable_count))
