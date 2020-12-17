@@ -2,7 +2,7 @@
 
 Script to easily download all creator friendly tracks using your Monstercat gold account. You must have Monstercat gold for this to work.
 
-You will need your Monstercat SID to use this script. You can get it in chrome by visiting the following URL. Copy the sid which should start with "s%3A".
+You will need your Monstercat SID to use this script. You can get it in chrome by visiting the following URL. Copy the content for the cid cookie.
 ```
 chrome://settings/cookies/detail?site=connect.monstercat.com
 ```

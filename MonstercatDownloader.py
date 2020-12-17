@@ -15,6 +15,7 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 	downloaded_count = 0
 	exists_count = 0
 	not_downloadable_count = 0
+	skipped_count = 0
 	while True:
 		params = {
 			'skip': skip
@@ -25,7 +26,7 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 		r = requests.get(
 			'https://connect.monstercat.com/v2/catalog/browse',
 			params = params,
-			cookies = {'connect.sid': sid}
+			cookies = {'cid': sid}
 		)
 		resp = json.loads(r.text)
 
@@ -34,6 +35,10 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 
 			if not track['downloadable']:
 				not_downloadable_count += 1
+				continue
+
+			if track['release']['type'] == 'Podcast' or track['release']['type'] == 'Compilation':
+				skipped_count += 1
 				continue
 
 			if track['release']['type'] == 'Single':
@@ -88,10 +93,11 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 	print('')
 	print('Downloaded: {}'.format(downloaded_count))
 	print('Existed: {}'.format(exists_count))
+	print('Skipped: {}'.format(skipped_count))
 	print('Undownloadable: {}'.format(not_downloadable_count))
 
 if __name__ == '__main__':
-	parser = ArgumentParser(description='Download Monsertcat Library\nTo access SID on chrome:\nchrome://settings/cookies/detail?site=connect.monstercat.com\n', formatter_class=RawTextHelpFormatter)
+	parser = ArgumentParser(description='Download Monsertcat Library\nTo access SID (cid) on chrome:\nchrome://settings/cookies/detail?site=connect.monstercat.com\n', formatter_class=RawTextHelpFormatter)
 	parser.add_argument('-s', '--sid', help="sid for downloading using Monstercat Gold account", required=True)
 	parser.add_argument('-d', '--directory', help="Output directory to save mp3's", required=True)
 	parser.add_argument('-f', '--format', help="Download format as specified by Monstercat API", default='mp3_320')
