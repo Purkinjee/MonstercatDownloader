@@ -76,7 +76,7 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 						track_id = track['id']
 					),
 					params = {'format': format},
-					cookies = {'connect.sid': sid}
+					cookies = {'cid': sid}
 				)
 
 				with open(full_path, 'wb') as f:
