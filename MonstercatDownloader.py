@@ -79,6 +79,10 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 					cookies = {'connect.sid': sid}
 				)
 
+				if mp3.status_code != 200:
+					print('Failed to download {path}, request returned status code {status}. Skipping'.format(path=full_path, status=mp3.status_code))
+					continue
+
 				with open(full_path, 'wb') as f:
 					f.write(mp3.content)
 				downloaded_count += 1
