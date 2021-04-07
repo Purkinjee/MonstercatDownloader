@@ -7,6 +7,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 import os
 import re
 from pathlib import Path
+from pathvalidate import sanitize_filename
 
 def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendly=True):
 	skip = 0
@@ -48,17 +49,17 @@ def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendl
 					artist = track['release']['artistsTitle'],
 					release = track['release']['title']
 				).replace('|', '-').replace('/', '-').replace('\\', '-').replace(':', '')
-				subdir = re.sub(r'[*?:"<>|]' ,'', subdir)
+				#subdir = re.sub(r'[*?:"<>|]' ,'', subdir)
+				subdir = sanitize_filename(subdir)
 
 			if not os.path.exists("{parent}/{sub}".format(parent=output_dir, sub=subdir)):
 				os.mkdir("{parent}/{sub}".format(parent=output_dir, sub=subdir))
-
-			title_esc = re.sub(r'[*?:"<>|]' ,'', track['title'])
+				
 			full_path = "{parent}/{sub}/{artist} - {title}.mp3".format(
 				parent = output_dir,
 				sub = subdir,
-				artist = track['artistsTitle'],
-				title = title_esc.replace('/', '-').replace('\\', '-')
+				artist = sanitize_filename(track['artistsTitle']),
+				title = sanitize_filename(track['title'])
 			).replace('//', '/')
 
 			percent = '%0.2f' % ((float(count)/float(resp['total'])) * 100)
