@@ -1,120 +1,150 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
 import json
-from argparse import ArgumentParser, RawTextHelpFormatter
 import os
-import re
-from pathlib import Path
+from argparse import ArgumentParser, RawTextHelpFormatter
+
+import requests
 from pathvalidate import sanitize_filename
 
+
 def DownloadMonstercatLibrary(sid, output_dir, format="mp3_320", creator_friendly=True):
-	skip = 0
-	count = 0
+    offset = 0
+    count = 0
 
-	downloaded_count = 0
-	exists_count = 0
-	not_downloadable_count = 0
-	skipped_count = 0
-	while True:
-		params = {
-			'skip': skip
-		}
-		if creator_friendly:
-			params['creatorfriendly'] = True
+    downloaded_count = 0
+    exists_count = 0
+    not_downloadable_count = 0
+    skipped_count = 0
 
-		r = requests.get(
-			'https://connect.monstercat.com/v2/catalog/browse',
-			params = params,
-			cookies = {'cid': sid}
-		)
-		resp = json.loads(r.text)
+    while True:
+        params = {
+            'offset': offset
+        }
+        if creator_friendly:
+            params['CreatorFriendly'] = True
 
-		for track in resp['results']:
-			count += 1
+        r = requests.get(
+            'https://player.monstercat.app/api/catalog/browse',
+            params=params,
+            cookies={'cid': sid}
+        )
+        resp = json.loads(r.text)
 
-			if not track['downloadable']:
-				not_downloadable_count += 1
-				continue
+        print(r.url)
 
-			if track['release']['type'] == 'Podcast' or track['release']['type'] == 'Compilation':
-				skipped_count += 1
-				continue
+        manual_limit = len(resp['Data'])
 
-			if track['release']['type'] == 'Single':
-				subdir = 'Singles'
-			else:
-				subdir = "{artist} - {release}".format(
-					artist = track['release']['artistsTitle'],
-					release = track['release']['title']
-				).replace('|', '-').replace('/', '-').replace('\\', '-').replace(':', '')
-				#subdir = re.sub(r'[*?:"<>|]' ,'', subdir)
-				subdir = sanitize_filename(subdir)
+        for track in resp['Data']:
+            count += 1
 
-			if not os.path.exists("{parent}/{sub}".format(parent=output_dir, sub=subdir)):
-				os.mkdir("{parent}/{sub}".format(parent=output_dir, sub=subdir))
-				
-			full_path = "{parent}/{sub}/{artist} - {title}.mp3".format(
-				parent = output_dir,
-				sub = subdir,
-				artist = sanitize_filename(track['artistsTitle']),
-				title = sanitize_filename(track['title'])
-			).replace('//', '/')
+            if not track['Downloadable']:
+                not_downloadable_count += 1
+                print(track['Release']['Title'] + " not Downloadable")
+                continue
 
-			percent = '%0.2f' % ((float(count)/float(resp['total'])) * 100)
-			status_str = "[{current}/{total} {percent}%]".format(
-				current = count,
-				total = resp['total'],
-				percent = percent
-			)
-			print(status_str, end='\r', flush=True)
+            if track['Release']['Type'] == 'Podcast' or track['Release']['Type'] == 'Compilation':
+                skipped_count += 1
+                print("Skipped: " + track['Release']['Title'])
+                continue
 
-			if not os.path.exists(full_path):
-				mp3 = requests.get(
-					'https://connect.monstercat.com/v2/release/{release_id}/track-download/{track_id}'.format(
-						release_id = track['release']['id'],
-						track_id = track['id']
-					),
-					params = {'format': format},
-					cookies = {'cid': sid}
-				)
+            if track['Release']['Type'] == 'Single':
+                subdir = 'Singles'
+            else:
+                version = track['Release']['Version']
+                if version != "":
+                    version = " " + version
+                subdir = "{artist} - {release}{version}".format(
+                    artist=track['Release']['ArtistsTitle'],
+                    release=track['Release']['Title'],
+                    version=version
+                ).replace('|', '-').replace('/', '-').replace('\\', '-').replace(':', '')
+                # subdir = re.sub(r'[*?:"<>|]' ,'', subdir)
+                subdir = sanitize_filename(subdir)
 
-				if mp3.status_code != 200:
-					print('Failed to download {path}, request returned status code {status}. Skipping'.format(path=full_path, status=mp3.status_code))
-					continue
+            if not os.path.exists("{parent}/{sub}".format(parent=output_dir, sub=subdir)):
+                os.mkdir("{parent}/{sub}".format(parent=output_dir, sub=subdir))
 
-				with open(full_path, 'wb') as f:
-					f.write(mp3.content)
-				downloaded_count += 1
-			else:
-				exists_count += 1
+            filetype = ""
+            if format == "mp3_320":
+                filetype = "mp3"
+            else:
+                filetype = format
 
-		if (resp['skip'] + resp['limit']) >= resp['total']:
-			break
+            version = track['Version']
+            if version != "":
+                version = " " + version
 
-		skip += resp['limit']
+            full_path = "{parent}/{sub}/{artist} - {title}{version}.{filetype}".format(
+                parent=output_dir,
+                sub=subdir,
+                artist=sanitize_filename(track['ArtistsTitle']),
+                title=sanitize_filename(track['Title']),
+                filetype=filetype,
+                version=version
+            ).replace('//', '/')
 
-	print('')
-	print('Downloaded: {}'.format(downloaded_count))
-	print('Existed: {}'.format(exists_count))
-	print('Skipped: {}'.format(skipped_count))
-	print('Undownloadable: {}'.format(not_downloadable_count))
+            percent = '%0.2f' % ((float(count) / float(resp['Total'])) * 100)
+            status_str = "[{current}/{total} {percent}% -- Skipped: {skipped_count}]".format(
+                current=count,
+                total=resp['Total'],
+                percent=percent,
+                skipped_count=skipped_count
+            )
+            print(status_str, end='\r', flush=True)
+
+            if not os.path.exists(full_path):
+                mp3 = requests.get(
+                    'https://player.monstercat.app/api/release/{release_id}/track-download/{track_id}'.format(
+                        release_id=track['Release']['Id'],
+                        track_id=track['Id']
+                    ),
+                    params={'format': format},
+                    cookies={'cid': sid}
+                )
+
+                if mp3.status_code != 200:
+                    print('Failed to download {path}, request returned status code {status}. Skipping'.format(
+                        path=full_path, status=mp3.status_code))
+                    continue
+
+                with open(full_path, 'wb') as f:
+                    f.write(mp3.content)
+                downloaded_count += 1
+            else:
+                print(track['Release']['Title'] + " ~ " + track['Title'] + " already exists")
+                exists_count += 1
+
+        if (resp['Offset'] + manual_limit) >= resp['Total']:
+            break
+
+        print("Next Request at " + str(count) + "/" + str(resp['Total']) + "              ")
+        offset += manual_limit
+
+    print('')
+    print('Downloaded: {}'.format(downloaded_count))
+    print('Existed: {}'.format(exists_count))
+    print('Skipped: {}'.format(skipped_count))
+    print('Undownloadable: {}'.format(not_downloadable_count))
+
 
 if __name__ == '__main__':
-	parser = ArgumentParser(description='Download Monsertcat Library\nTo access SID (cid) on chrome:\nchrome://settings/cookies/detail?site=connect.monstercat.com\n', formatter_class=RawTextHelpFormatter)
-	parser.add_argument('-s', '--sid', help="sid for downloading using Monstercat Gold account", required=True)
-	parser.add_argument('-d', '--directory', help="Output directory to save mp3's", required=True)
-	parser.add_argument('-f', '--format', help="Download format as specified by Monstercat API", default='mp3_320')
-	parser.add_argument('--creatorunfriendly', help="Include tracks that are creator unfriendly", action="store_true")
-	args = parser.parse_args()
+    parser = ArgumentParser(
+        description='Download Monsertcat Library\nTo access SID (cid) on chrome:\nchrome://settings/cookies/detail?site=connect.monstercat.com\n',
+        formatter_class=RawTextHelpFormatter)
+    parser.add_argument('-s', '--sid', help="sid for downloading using Monstercat Gold account", required=True)
+    parser.add_argument('-d', '--directory', help="Output directory to save mp3's", required=True)
+    parser.add_argument('-f', '--format', help="Download format as specified by Monstercat API - mp3_320 / flac / wav", default='mp3_320')
+    parser.add_argument('--creatorunfriendly', help="Include tracks that are creator unfriendly", action="store_true")
+    args = parser.parse_args()
 
-	creator_friendly = True
-	if args.creatorunfriendly:
-		creator_friendly = False
+    creator_friendly = True
+    if args.creatorunfriendly:
+        creator_friendly = False
 
-	if not os.path.exists(args.directory):
-		print('Directory does not exist: {}'.format(args.directory))
-		exit()
+    if not os.path.exists(args.directory):
+        print('Directory does not exist: {}'.format(args.directory))
+        exit()
 
-	DownloadMonstercatLibrary(args.sid, args.directory, args.format, creator_friendly=creator_friendly)
+    DownloadMonstercatLibrary(args.sid, args.directory, args.format, creator_friendly=creator_friendly)
